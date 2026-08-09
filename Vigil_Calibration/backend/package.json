@@ -1,0 +1,25 @@
+{
+  "name": "vigil-calibration-backend",
+  "version": "1.0.0",
+  "description": "Weather-Based Sensor Calibration Suggestion System — backend service for the Vigil PIDS platform",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "init-db": "node db/init.js",
+    "seed-history": "node scripts/generate_sample_data.js",
+    "seed-history:small": "node scripts/generate_sample_data.js 60 10"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}
