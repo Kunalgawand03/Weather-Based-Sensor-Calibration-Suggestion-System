@@ -1,0 +1,9 @@
+{
+  "name": "vigil-calibration",
+  "private": true,
+  "scripts": {
+    "setup": "cd backend && npm install && npm run init-db",
+    "start": "cd backend && npm start",
+    "run": "cd backend && npm install && npm run init-db && npm start"
+  }
+}
