@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIGIL Calibration Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-0: #071016;
+      --bg-1: #0a0e13;
+      --panel: #0f1620;
+      --muted: #7c8fa3;
+      --accent: #2dd4cf;
+      --accent-2: #ff9f45;
+      color-scheme: dark;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      background: linear-gradient(180deg, rgba(10,14,19,1) 0%, rgba(6,10,14,1) 100%);
+      color: #e8edf3;
+    }
+    * { box-sizing: border-box; }
+    html,body { height:100%; }
+    body { margin: 0; min-height: 100vh; background-image: radial-gradient(rgba(45,212,207,0.02) 1px, transparent 1px); background-size: 1200px 1200px; }
+    a { color: inherit; }
+    button, select { font: inherit; }
+    .page { max-width: 1280px; margin: 0 auto; padding: 28px; }
+    .header { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .brand { display: flex; gap: 12px; align-items: center; }
+    .brand-dot { width: 54px; height: 54px; border-radius: 12px; background: linear-gradient(135deg,var(--accent),#6ee7b7); display: grid; place-items: center; color: #072027; font-weight:700; font-family: 'Space Grotesk', system-ui, sans-serif; box-shadow: 0 6px 20px rgba(45,212,207,0.06); transform: rotate(-6deg); transition: transform .3s ease; }
+    .brand-dot:hover { transform: rotate(0deg) scale(1.03); }
+    .brand-title { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; font-family: 'Space Grotesk', sans-serif; }
+    .brand-sub { color: var(--muted); font-size: .9rem; margin-top: 2px; }
+    .selector { min-width: 280px; }
+    .card-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .panel { background: var(--panel); border: 1px solid #1e2733; border-radius: 16px; padding: 18px; transition: transform .25s, box-shadow .25s; box-shadow: 0 6px 18px rgba(3,6,8,0.45); }
+    .panel:hover { transform: translateY(-6px); box-shadow: 0 18px 40px rgba(2,6,8,0.6); }
+    .panel.small { min-height: 160px; }
+    .toolbar-row { margin-top: 14px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .toolbar-note { color: #7c8fa3; font-size: .82rem; }
+    .footer-note { color: #7c8fa3; font-size: .85rem; line-height: 1.5; margin-top: 14px; }
+    .forecast-summary { margin-top: 16px; padding: 14px; border: 1px solid #1e2733; border-radius: 14px; background: #081017; color: #e8edf3; line-height: 1.5; }
+    .forecast-summary.high { border-color: #ff5f7a; background: rgba(255, 95, 122, 0.08); }
+    .forecast-summary.medium { border-color: #f2c94c; background: rgba(242, 201, 76, 0.08); }
+    .forecast-summary.low { border-color: #2dd4cf; background: rgba(45, 212, 207, 0.08); }
+    .chart-wrapper { margin-top: 0; }
+    .analytics-panel { padding: 16px; background: #10151f; border-color: #1a232f; }
+    .chart-canvas { width: 100%; height: 100%; }
+    .panel-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; color: var(--muted); font-size: .78rem; letter-spacing: .09em; text-transform: uppercase; }
+    .site-select { width: 100%; padding: 12px 14px; background: var(--panel); border: 1px solid #1e2733; border-radius: 12px; color: #e8edf3; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .stat { display: flex; gap: 12px; align-items: center; border: 1px solid #1e2733; border-radius: 12px; padding: 12px; background: linear-gradient(180deg, #0c1216, #0f1620); }
+    .stat .icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; color: var(--accent); background: rgba(45,212,207,.08); }
+    .stat-label { color: var(--muted); font-size: .76rem; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 4px; }
+    .stat-value { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; line-height: 1; transition: color .25s; }
+    .stat-value.emph { color: var(--accent); }
+    .dial { display: grid; place-items: center; padding: 14px; }
+    .dial-face { position: relative; width: min(100%, 320px); height: 190px; }
+    .arc { position: absolute; inset: 0; }
+    .needle { position: absolute; left: 50%; bottom: 22px; width: 6px; height: 90px; transform-origin: bottom center; border-radius: 999px; background: var(--accent); transition: transform .9s cubic-bezier(.22,1,.36,1), background .3s; box-shadow: 0 6px 18px rgba(45,212,207,0.12); }
+    .dial-label { margin-top: 18px; text-align: center; }
+    .dial-label strong { display: block; font-size: 2rem; color: var(--accent); }
+    .reason-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+    .reason-list li { display: flex; gap: 10px; align-items: flex-start; font-size: .95rem; line-height: 1.45; }
+    .reason-bullet { width: 8px; height: 8px; margin-top: 6px; border-radius: 999px; background: var(--accent); flex-shrink: 0; }
+    .tiny-btn { border: 1px solid #1e2733; border-radius: 12px; background: #121821; color: #e8edf3; padding: 10px 12px; cursor: pointer; transition: border-color .15s, transform .12s; }
+    .tiny-btn:hover { border-color: rgba(45,212,207,.36); transform: translateY(-2px); }
+    .tiny-btn.active { background: var(--accent); color: #071014; border-color: transparent; }
+    .alert { display: none; gap: 10px; align-items: center; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(255,84,112,.28); background: rgba(255,84,112,.06); color: #ff9baa; margin-bottom: 14px; }
+    .alert.visible { display: flex; }
+    .chart { width: 100%; height: 140px; }
+    .chart-canvas { width: 100%; height: 100%; }
+    .chart-empty { color: #7c8fa3; display: grid; place-items: center; height: 100%; }
+    .analytics-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .analytics-top-margin { margin-top: 18px; }
+    .footer { margin-top: 20px; color: var(--muted); font-size: .82rem; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+    .spinner { width: 16px; height: 16px; border: 2px solid transparent; border-top-color: var(--accent); border-radius: 999px; animation: spin 1s linear infinite; display: inline-block; }
+    .toolbar-row { margin-top: 14px; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+    .toolbar-note { color: #7c8fa3; font-size: .82rem; }
+    .toolbar-note input { margin-right: 8px; accent-color: #2dd4cf; }
+    .toolbar-text-right { min-width: 120px; text-align: right; }
+    .forecast-summary { margin-top: 16px; padding: 14px; border: 1px solid #1e2733; border-radius: 14px; background: #081017; color: #e8edf3; line-height: 1.5; }
+    .forecast-summary.high { border-color: #ff5f7a; background: rgba(255, 95, 122, 0.08); }
+    .forecast-summary.medium { border-color: #f2c94c; background: rgba(242, 201, 76, 0.08); }
+    .forecast-summary.low { border-color: #2dd4cf; background: rgba(45, 212, 207, 0.08); }
+    .analytics-panel { padding: 16px; background: #10151f; border-color: #1a232f; }
+    .margin-top-small { margin-top: 10px; }
+    .button-row { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+    .footer-note { margin-top: 14px; color: #7c8fa3; font-size: .85rem; line-height: 1.5; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1080px) { .card-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .header { flex-direction: column; align-items: stretch; } }
+    .fade-in { animation: fadeIn .45s ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* live indicator */
+    .live-pill { display: inline-flex; align-items: center; gap: 6px; font-size: .78rem; color: var(--muted); border: 1px solid #1e2733; border-radius: 999px; padding: 5px 10px; }
+    .live-dot { width: 7px; height: 7px; border-radius: 999px; background: #3a4553; }
+    .live-dot.on { background: #2dd4cf; box-shadow: 0 0 0 0 rgba(45,212,207,.6); animation: pulse 1.6s infinite; }
+    @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(45,212,207,.55); } 70% { box-shadow: 0 0 0 8px rgba(45,212,207,0); } 100% { box-shadow: 0 0 0 0 rgba(45,212,207,0); } }
+
+    /* mission control overview strip */
+    .overview-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 18px; }
+    .overview-card { display: flex; align-items: center; gap: 10px; border: 1px solid #1e2733; border-radius: 12px; padding: 10px 12px; background: #0f1620; cursor: pointer; transition: border-color .15s, transform .12s; }
+    .overview-card:hover { border-color: rgba(45,212,207,.4); transform: translateY(-1px); }
+    .overview-card.active { border-color: var(--accent); background: rgba(45,212,207,0.06); }
+    .overview-status-dot { width: 10px; height: 10px; border-radius: 999px; flex-shrink: 0; }
+    .overview-status-dot.Low { background: #ff9f45; }
+    .overview-status-dot.Medium { background: #f2c94c; }
+    .overview-status-dot.High { background: #2dd4cf; }
+    .overview-card-name { font-size: .82rem; font-weight: 600; line-height: 1.3; }
+    .overview-card-meta { font-size: .72rem; color: var(--muted); margin-top: 2px; }
+    .overview-card-badge { margin-left: auto; font-size: .68rem; text-transform: uppercase; letter-spacing: .05em; padding: 2px 6px; border-radius: 6px; background: rgba(255,95,122,0.12); color: #ff9baa; }
+
+    /* live activity feed */
+    .feed-panel { grid-column: 1 / -1; }
+    .feed-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; display: flex; flex-direction: column-reverse; gap: 8px; }
+    .feed-item { display: flex; gap: 10px; align-items: flex-start; font-size: .86rem; line-height: 1.4; padding: 8px 10px; border-radius: 10px; border: 1px solid #1a222c; background: #0d131a; }
+    .feed-icon { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; flex-shrink: 0; font-size: .78rem; margin-top: 1px; }
+    .feed-icon.trigger_suppressed { background: rgba(45,212,207,.12); color: #2dd4cf; }
+    .feed-icon.trigger_escalated { background: rgba(255,95,122,.14); color: #ff9baa; }
+    .feed-icon.storm_alert { background: rgba(255,159,69,.16); color: #ff9f45; }
+    .feed-icon.level_change { background: rgba(242,201,76,.14); color: #f2c94c; }
+    .feed-icon.override_applied, .feed-icon.override_cleared { background: rgba(124,143,163,.16); color: #c4cdd8; }
+    .feed-time { color: var(--muted); font-size: .72rem; white-space: nowrap; margin-left: auto; padding-top: 1px; }
+    .feed-empty { color: var(--muted); font-size: .85rem; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="header">
+      <div class="brand">
+        <div class="brand-dot">V</div>
+        <div>
+          <div class="brand-title">VIGIL Calibration</div>
+          <div class="brand-sub">Weather-driven sensor sensitivity for perimeter intrusion detection</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span id="livePill" class="live-pill"><span id="liveDot" class="live-dot"></span><span id="liveLabel">Connecting…</span></span>
+        <div class="selector">
+          <select id="siteSelect" class="site-select" aria-label="Choose monitoring site"></select>
+        </div>
+      </div>
+    </div>
+
+    <div id="overviewStrip" class="overview-strip"></div>
+
+    <div id="stormAlert" class="alert" role="status">
+      <strong>Storm warning:</strong> Active storm conditions detected. Sensitivity is lowered to reduce false alarms.
+    </div>
+
+    <div class="card-grid">
+      <section class="panel">
+        <div class="panel-header"><span>Live conditions</span><button id="refreshButton" class="tiny-btn">Refresh</button></div>
+        <div id="stats" class="stats-grid"></div>
+        <div class="toolbar-row">
+          <label class="toolbar-note">
+            <input id="autoRefresh" type="checkbox" checked /> Auto refresh every 60s
+          </label>
+          <div id="lastUpdated" class="toolbar-note toolbar-text-right">Loading…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><span>Recommended sensitivity</span></div>
+        <div class="dial">
+          <div class="dial-face">
+            <svg class="arc" viewBox="0 0 320 190" preserveAspectRatio="xMidYMid meet">
+              <path d="M 50 150 A 100 100 0 0 1 270 150" fill="none" stroke="#1e2733" stroke-width="18" stroke-linecap="round" />
+              <path d="M 50 150 A 100 100 0 0 1 160 50" fill="none" stroke="#ff9f45" stroke-width="18" stroke-linecap="round" />
+              <path d="M 160 50 A 100 100 0 0 1 270 150" fill="none" stroke="#2dd4cf" stroke-width="18" stroke-linecap="round" />
+              <text x="50" y="170" fill="#7c8fa3" font-size="11" font-family="JetBrains Mono">LOW</text>
+              <text x="145" y="38" fill="#7c8fa3" font-size="11" font-family="JetBrains Mono">MED</text>
+              <text x="260" y="170" fill="#7c8fa3" font-size="11" font-family="JetBrains Mono">HIGH</text>
+            </svg>
+            <div id="needle" class="needle"></div>
+          </div>
+          <div class="dial-label">
+            <strong id="levelLabel">—</strong>
+            <div id="confidenceLabel">Waiting for live weather</div>
+          </div>
+        </div>
+        <div class="panel-header margin-top-small"><span>Why this level?</span></div>
+        <ul id="reasons" class="reason-list"></ul>
+        <div id="forecastSummary" class="forecast-summary">Forecast summary loading…</div>
+        <div class="card-grid button-row">
+          <button class="tiny-btn" id="overrideLow">Override Low</button>
+          <button class="tiny-btn" id="overrideMedium">Override Medium</button>
+          <button class="tiny-btn" id="overrideHigh">Override High</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header"><span>Trend + analytics</span></div>
+        <div id="chartContainer" class="chart"><canvas id="historyChartCanvas" class="chart-canvas"></canvas></div>
+        <div class="analytics-grid analytics-top-margin">
+          <div class="panel analytics-panel">
+            <div class="stat-label">Readings logged</div>
+            <div id="readingCount" class="stat-value">0</div>
+          </div>
+          <div class="panel analytics-panel">
+            <div class="stat-label">Storm events</div>
+            <div id="stormCount" class="stat-value">0</div>
+          </div>
+        </div>
+        <div class="footer-note">Estimates are illustrative and based on live weather-driven sensitivity instead of a static max-sensitivity baseline.</div>
+      </section>
+
+      <section class="panel feed-panel">
+        <div class="panel-header">
+          <span>Live activity feed</span>
+          <span class="toolbar-note">Simulated zone sensor triggers, reasoned against current calibration</span>
+        </div>
+        <ul id="feedList" class="feed-list">
+          <li class="feed-empty">Waiting for the first sensor event…</li>
+        </ul>
+      </section>
+    </div>
+
+    <div class="footer">
+      <div>VIGIL PIDS · Weather-based calibration module · Prototype</div>
+      <div>Live data from Open-Meteo via backend API</div>
+    </div>
+  </div>
+
+  <script>
+    // load Chart.js CDN dynamically for enhanced charts
+    (function loadChart() {
+      if (window.Chart) return;
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      s.defer = true;
+      s.onload = () => console.log('Chart.js loaded');
+      s.onerror = () => console.warn('Chart.js failed to load');
+      document.head.appendChild(s);
+    })();
+    // small helper to animate numeric values smoothly
+    function animateValue(el, to, opts = {}) {
+      const start = parseFloat(el.dataset.value || el.textContent.replace(/[^0-9.]/g, '') || 0);
+      const end = typeof to === 'number' ? to : parseFloat(String(to).replace(/[^0-9.]/g, '')) || 0;
+      const duration = opts.duration || 600;
+      const startTime = performance.now();
+      el.dataset.value = start;
+      function step(now) {
+        const t = Math.min(1, (now - startTime) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const value = start + (end - start) * eased;
+        el.textContent = Math.round(value * (opts.mult || 1)) / (opts.mult || 1) + (opts.suffix || '');
+        if (t < 1) requestAnimationFrame(step);
+        else el.dataset.value = end;
+      }
+      requestAnimationFrame(step);
+    }
+
+    const LEVEL_POSITIONS = { Low: -55, Medium: 0, High: 55 };
+    const LEVEL_COLOR = { Low: '#ff9f45', Medium: '#f2c94c', High: '#2dd4cf' };
+    const siteSelect = document.getElementById('siteSelect');
+    const stats = document.getElementById('stats');
+    const levelLabel = document.getElementById('levelLabel');
+    const confidenceLabel = document.getElementById('confidenceLabel');
+    const reasonsList = document.getElementById('reasons');
+    const needle = document.getElementById('needle');
+    const stormAlert = document.getElementById('stormAlert');
+    const readingCount = document.getElementById('readingCount');
+    const stormCount = document.getElementById('stormCount');
+    const chartContainer = document.getElementById('chartContainer');
+    const forecastSummary = document.getElementById('forecastSummary');
+    const lastUpdated = document.getElementById('lastUpdated');
+    const refreshButton = document.getElementById('refreshButton');
+    const autoRefreshInput = document.getElementById('autoRefresh');
+    const overrideLow = document.getElementById('overrideLow');
+    const overrideMedium = document.getElementById('overrideMedium');
+    const overrideHigh = document.getElementById('overrideHigh');
+
+    let state = { sites: [], currentSiteId: null, override: null, timer: null, eventSource: null, overviewSource: null, overview: [] };
+
+    const overviewStrip = document.getElementById('overviewStrip');
+    const feedList = document.getElementById('feedList');
+    const liveDot = document.getElementById('liveDot');
+    const liveLabel = document.getElementById('liveLabel');
+
+    const EVENT_ICON = {
+      trigger_suppressed: '✓',
+      trigger_escalated: '!',
+      storm_alert: '⛈',
+      level_change: '↕',
+      override_applied: '●',
+      override_cleared: '○',
+    };
+
+    function setLiveStatus(connected) {
+      liveDot.classList.toggle('on', connected);
+      liveLabel.textContent = connected ? 'LIVE' : 'Reconnecting…';
+    }
+
+    function timeAgoLabel(iso) {
+      try {
+        return new Date(iso.replace(' ', 'T') + 'Z').toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch {
+        return '';
+      }
+    }
+
+    function appendFeedItem(evt) {
+      const empty = feedList.querySelector('.feed-empty');
+      if (empty) empty.remove();
+      const li = document.createElement('li');
+      li.className = 'feed-item fade-in';
+      li.innerHTML = `
+        <div class="feed-icon ${evt.type}">${EVENT_ICON[evt.type] || '•'}</div>
+        <div>${evt.message}</div>
+        <div class="feed-time">${timeAgoLabel(evt.created_at)}</div>
+      `;
+      feedList.appendChild(li);
+      // cap the DOM list so it doesn't grow unbounded during a long demo
+      while (feedList.children.length > 40) feedList.removeChild(feedList.firstChild);
+      feedList.scrollTop = feedList.scrollHeight;
+    }
+
+    async function loadInitialFeed(siteId) {
+      feedList.innerHTML = '<li class="feed-empty">Loading recent activity…</li>';
+      try {
+        const events = await api(`/api/sites/${siteId}/events?limit=25`);
+        feedList.innerHTML = '';
+        if (!events.length) {
+          feedList.innerHTML = '<li class="feed-empty">No activity yet for this site — events appear as live weather and sensor conditions change.</li>';
+          return;
+        }
+        events.forEach(appendFeedItem);
+      } catch (err) {
+        feedList.innerHTML = `<li class="feed-empty">Could not load activity feed: ${err.message}</li>`;
+      }
+    }
+
+    function renderOverviewStrip() {
+      if (!state.overview.length) return;
+      overviewStrip.innerHTML = state.overview.map((row) => `
+        <div class="overview-card ${row.site.id === state.currentSiteId ? 'active' : ''}" data-site-id="${row.site.id}">
+          <div class="overview-status-dot ${row.effectiveLevel || ''}"></div>
+          <div>
+            <div class="overview-card-name">${row.site.name}</div>
+            <div class="overview-card-meta">${row.effectiveLevel || '—'} sensitivity${row.overridden ? ' · override' : ''} · ${row.eventsLastHour} events/hr</div>
+          </div>
+          ${row.storm ? '<div class="overview-card-badge">Storm</div>' : ''}
+        </div>
+      `).join('');
+      overviewStrip.querySelectorAll('.overview-card').forEach((card) => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.siteId;
+          if (id && id !== state.currentSiteId) {
+            siteSelect.value = id;
+            siteSelect.dispatchEvent(new Event('change'));
+          }
+        });
+      });
+    }
+
+    async function loadOverviewOnce() {
+      try {
+        state.overview = await api('/api/overview');
+        renderOverviewStrip();
+      } catch (err) {
+        console.warn('overview load failed', err);
+      }
+    }
+
+    function startOverviewStream() {
+      if (state.overviewSource) state.overviewSource.close();
+      const source = new EventSource('/api/overview/stream');
+      state.overviewSource = source;
+      source.addEventListener('overview', (event) => {
+        try {
+          state.overview = JSON.parse(event.data);
+          renderOverviewStrip();
+        } catch (err) {
+          console.warn('overview SSE payload error', err);
+        }
+      });
+    }
+
+    async function api(path, options) {
+      const res = await fetch(path, options);
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || 'Network error');
+      }
+      return res.json();
+    }
+
+    function renderStats(current, recommendation) {
+      const fields = [
+        { label: 'Wind', value: `${current.wind.toFixed(0)} km/h` },
+        { label: 'Gusts', value: `${current.gust.toFixed(0)} km/h` },
+        { label: 'Precipitation', value: `${current.rain.toFixed(1)} mm` },
+        { label: 'Humidity', value: `${current.humidity.toFixed(0)}%` },
+        { label: 'Temp', value: `${current.temp.toFixed(1)}°C` },
+        { label: 'Sky', value: recommendation.wx.label },
+        { label: 'Risk', value: `${recommendation.riskScore}%` },
+      ];
+      stats.innerHTML = fields.map(f => `
+        <div class="stat fade-in">
+          <div class="icon">•</div>
+          <div>
+            <div class="stat-label">${f.label}</div>
+            <div class="stat-value">${f.value}</div>
+          </div>
+        </div>
+      `).join('');
+      // animate numeric values
+      Array.from(stats.querySelectorAll('.stat-value')).forEach((el, idx) => {
+        const raw = fields[idx].value;
+        const num = parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
+        const suffix = String(raw).replace(/[0-9.]/g, '');
+        animateValue(el, num, { duration: 700, suffix });
+      });
+    }
+
+    function renderRecommendation(recommendation, overrideLevel) {
+      const level = overrideLevel || recommendation.level;
+      levelLabel.textContent = level.toUpperCase();
+      confidenceLabel.textContent = overrideLevel ? 'Manual override active' : `Recommended · ${recommendation.confidence}% confidence`;
+      const rotation = LEVEL_POSITIONS[level] || 0;
+      needle.style.transform = `translateX(-50%) rotate(${rotation}deg)`;
+      needle.style.background = LEVEL_COLOR[level] || '#2dd4cf';
+      reasonsList.innerHTML = recommendation.reasons.map(r => `
+        <li><span class="reason-bullet"></span>${r}</li>
+      `).join('');
+      stormAlert.classList.toggle('visible', recommendation.wx.storm);
+    }
+
+    function renderForecast(forecast) {
+      if (!forecast || !forecast.summary) {
+        forecastSummary.textContent = 'Forecast summary unavailable.';
+        return;
+      }
+      forecastSummary.textContent = forecast.summary;
+      forecastSummary.style.borderColor = forecast.action === 'High' ? '#ff5f7a' : forecast.action === 'Medium' ? '#f2c94c' : '#2dd4cf';
+      forecastSummary.style.background = forecast.action === 'High' ? 'rgba(255,95,122,0.08)' : forecast.action === 'Medium' ? 'rgba(242,201,76,0.08)' : 'rgba(45,212,207,0.08)';
+    }
+
+    function renderHistory(history) {
+      // render history using Chart.js if available
+      const canvas = document.getElementById('historyChartCanvas');
+      if (!history || history.length === 0) {
+        canvas.style.display = 'none';
+        chartContainer.innerHTML = '<div class="chart-empty">Waiting for history data…</div>';
+        return;
+      }
+      canvas.style.display = '';
+      // ensure canvas is visible and get context
+      const ctx = canvas.getContext('2d');
+      const labels = history.map((h) => (h.recorded_at ? h.recorded_at.split(' ')[1] || h.t : h.t));
+      const data = history.map((h) => (h.recommended_level === 'Low' ? 1 : h.recommended_level === 'Medium' ? 2 : 3));
+
+      if (window.historyChart) {
+        window.historyChart.data.labels = labels;
+        window.historyChart.data.datasets[0].data = data;
+        window.historyChart.update();
+        return;
+      }
+
+      // create gradient
+      const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height || 140);
+      gradient.addColorStop(0, 'rgba(45,212,207,0.35)');
+      gradient.addColorStop(1, 'rgba(45,212,207,0)');
+
+      if (window.Chart) {
+        window.historyChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              {
+                label: 'Recommended level',
+                data,
+                borderColor: '#2dd4cf',
+                backgroundColor: gradient,
+                fill: true,
+                tension: 0.2,
+                pointRadius: 4,
+                borderWidth: 2,
+              },
+            ],
+          },
+          options: {
+            maintainAspectRatio: false,
+            animation: { duration: 800, easing: 'easeOutCubic' },
+            scales: {
+              y: { min: 0.8, max: 3.2, ticks: { stepSize: 1, callback: v => (v === 1 ? 'Low' : v === 2 ? 'Med' : 'High'), color: '#7c8fa3' } },
+              x: { ticks: { color: '#7c8fa3' } },
+            },
+            plugins: { legend: { display: false }, tooltip: { backgroundColor: '#121821', titleColor: '#2dd4cf', bodyColor: '#e8edf3' } },
+          },
+        });
+      } else {
+        chartContainer.innerHTML = '<div class="chart-empty">Chart library unavailable</div>';
+      }
+    }
+
+    function renderAnalytics(analytics) {
+      animateValue(readingCount, analytics.totalReadings || 0);
+      animateValue(stormCount, analytics.stormEvents || 0);
+    }
+
+    async function loadSites() {
+      try {
+        const sites = await api('/api/sites');
+        state.sites = sites;
+        siteSelect.innerHTML = sites.map(site => `
+          <option value="${site.id}">${site.name}</option>
+        `).join('');
+        state.currentSiteId = sites[0]?.id || null;
+        if (state.currentSiteId) {
+          siteSelect.value = state.currentSiteId;
+          await refresh();
+        }
+      } catch (err) {
+        stats.innerHTML = `<div class="error-note">Cannot load sites: ${err.message}</div>`;
+      }
+    }
+
+    async function refresh() {
+      if (!state.currentSiteId) return;
+      refreshButton.disabled = true;
+      refreshButton.textContent = 'Refreshing…';
+      try {
+        const data = await api(`/api/sites/${state.currentSiteId}/weather`);
+        state.override = data.override;
+        renderStats(data.weather, data.recommendation);
+        renderRecommendation(data.recommendation, data.override);
+        renderForecast(data.forecast);
+        renderHistory(data.history);
+        renderAnalytics(data.analytics);
+        lastUpdated.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      } catch (err) {
+        stats.innerHTML = `<div class="error-note">Live refresh failed: ${err.message}</div>`;
+      } finally {
+        refreshButton.disabled = false;
+        refreshButton.textContent = 'Refresh';
+      }
+    }
+
+    async function useOverride(level) {
+      try {
+        await api(`/api/sites/${state.currentSiteId}/override`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ level }),
+        });
+        state.override = level;
+        await refresh();
+      } catch (err) {
+        alert('Override failed: ' + err.message);
+      }
+    }
+
+    async function clearOverride() {
+      try {
+        await api(`/api/sites/${state.currentSiteId}/override`, { method: 'DELETE' });
+        state.override = null;
+        await refresh();
+      } catch (err) {
+        alert('Unable to clear override: ' + err.message);
+      }
+    }
+
+    function startLiveStream() {
+      if (state.eventSource) {
+        state.eventSource.close();
+        state.eventSource = null;
+      }
+      if (!state.currentSiteId) return;
+
+      const source = new EventSource(`/api/sites/${state.currentSiteId}/stream`);
+      state.eventSource = source;
+
+      source.addEventListener('connected', (event) => {
+        console.log('SSE connected', event.data);
+        setLiveStatus(true);
+      });
+      source.addEventListener('update', async (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          state.override = data.override;
+          renderStats(data.weather, data.recommendation);
+          renderRecommendation(data.recommendation, data.override);
+          renderForecast(data.forecast);
+          renderHistory(data.history);
+          renderAnalytics(data.analytics);
+          lastUpdated.textContent = `Live ${new Date().toLocaleTimeString()}`;
+        } catch (err) {
+          console.warn('SSE payload error', err);
+        }
+      });
+      source.addEventListener('sensor_event', (event) => {
+        try {
+          const evt = JSON.parse(event.data);
+          if (evt.site_id === state.currentSiteId) appendFeedItem(evt);
+        } catch (err) {
+          console.warn('sensor_event payload error', err);
+        }
+      });
+      source.onopen = () => setLiveStatus(true);
+      source.onerror = () => {
+        console.warn('SSE connection lost, reconnecting...');
+        setLiveStatus(false);
+      };
+    }
+
+    function startAutoRefresh() {
+      if (state.timer) clearInterval(state.timer);
+      if (autoRefreshInput.checked) {
+        state.timer = setInterval(refresh, 60000);
+      }
+    }
+
+    siteSelect.addEventListener('change', async (event) => {
+      state.currentSiteId = event.target.value;
+      state.override = null;
+      if (state.eventSource) state.eventSource.close();
+      await refresh();
+      await loadInitialFeed(state.currentSiteId);
+      renderOverviewStrip();
+      startLiveStream();
+    });
+    refreshButton.addEventListener('click', refresh);
+    autoRefreshInput.addEventListener('change', startAutoRefresh);
+    overrideLow.addEventListener('click', () => useOverride('Low'));
+    overrideMedium.addEventListener('click', () => useOverride('Medium'));
+    overrideHigh.addEventListener('click', () => useOverride('High'));
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadSites();
+      await loadOverviewOnce();
+      await loadInitialFeed(state.currentSiteId);
+      startAutoRefresh();
+      startLiveStream();
+      startOverviewStream();
+    });
+  </script>
+</body>
+</html>
